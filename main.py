@@ -1,4 +1,6 @@
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
 
 # importing dataset
@@ -18,6 +20,19 @@ object_columns = df.select_dtypes(include=["object"]).columns
 print(df[object_columns].info())
 for column in object_columns:
     df[column + "_encoded"] = encoder.fit_transform(df[column])
+    df.drop(columns=column, inplace=True)
 print(df.info())
+# eda tipis - tipis
+# who depressed more? men or women?
+# men udah percaya aja, jk
+"""
+sns.countplot(data=df, x="Gender")
+plt.title("Count Plot of Categories")
+plt.xlabel("Gender")
+plt.ylabel("Total")
+plt.show()
+"""
 
-# now what should i do?
+# how does each data correlates
+sns.heatmap(df.corr(), annot=True, cmap="crest")
+plt.show()
