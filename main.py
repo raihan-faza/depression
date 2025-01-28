@@ -49,6 +49,8 @@ plt.show()
 
 
 # making the model
+
+
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
@@ -58,7 +60,7 @@ class NeuralNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(in_features=64, out_features=32),
             nn.ReLU(),
-            nn.Linear(in_features=32, out_features=1),
+            nn.Linear(in_features=32, out_features=1),  # For binary classification
         )
 
     def forward(self, x):
@@ -70,7 +72,9 @@ class NeuralNetwork(nn.Module):
 class MyDS(Dataset):
     def __init__(self, x, y):
         self.x = torch.tensor(x.to_numpy(), dtype=torch.float32)
-        self.y = torch.tensor(y.to_numpy(), dtype=torch.long)
+        self.y = torch.tensor(
+            y.to_numpy(), dtype=torch.float32
+        )  # Changed to float32 for BCEWithLogitsLoss
 
     def __len__(self):
         return len(self.x)
@@ -93,7 +97,7 @@ test_loader = DataLoader(test_ds, batch_size=10, shuffle=True)
 # train the model
 model = NeuralNetwork()
 num_epochs = 100
-criterion = nn.BCEWithLogitsLoss()
+criterion = nn.BCEWithLogitsLoss()  # For binary classification
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 for epoch in range(num_epochs):
@@ -103,12 +107,15 @@ for epoch in range(num_epochs):
     ):
         optimizer.zero_grad()  # Reset gradients
         output = model(data)  # Forward pass
-        target = target.unsqueeze(1)
-        loss = criterion(output, target.float())  # Compute loss
+        loss = criterion(
+            output.squeeze(), target
+        )  # Squeeze the output to match target shape
         loss.backward()  # Backpropagation
         optimizer.step()  # Update weights
 
+# Save the model
 torch.save(model, "model.pth")
+
 # evaluate model
 model.eval()
 y_true, y_pred = [], []
@@ -116,9 +123,10 @@ y_true, y_pred = [], []
 with torch.no_grad():  # No need to track gradients
     for inputs, labels in test_loader:
         outputs = model(inputs)
-        _, predicted = torch.max(outputs, 1)
+        # Apply sigmoid and threshold to get predictions
+        predictions = torch.sigmoid(outputs).squeeze() > 0.5  # Binary thresholding
         y_true.extend(labels.numpy())
-        y_pred.extend(predicted.numpy())
+        y_pred.extend(predictions.numpy())
 
 accuracy = accuracy_score(y_true, y_pred)
 print(f"Accuracy: {accuracy}")
